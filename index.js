@@ -16,9 +16,8 @@ const corsOptions = {
     // Define allowed origins
     const allowedOrigins = [
       'http://localhost:5173',
-      'https://journalise.vercel.app',
-      process.env.FRONTEND_URL
-    ].filter(Boolean); // Remove any undefined values
+      'https://journalise.vercel.app'
+    ]
 
     // Allow requests with no origin (mobile apps, curl, Postman, etc.)
     if (!origin) return callback(null, true);
