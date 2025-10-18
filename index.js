@@ -17,7 +17,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
-      'https://journalise.vercel.app/',
+      'https://journal-website-three.vercel.app',
       process.env.FRONTEND_URL
     ].filter(Boolean); // Remove any undefined values
 
@@ -44,8 +44,8 @@ const corsOptions = {
     'X-File-Name'
   ],
   exposedHeaders: ['Content-Length', 'X-JSON'],
-  maxAge: 86400, // Cache preflight response for 24 hours
-  optionsSuccessStatus: 200 // For legacy browser support
+  maxAge: 86400,
+  optionsSuccessStatus: 200
 };
 
 // Apply CORS middleware
@@ -56,10 +56,10 @@ app.options('*', cors(corsOptions));
 
 // Add security headers middleware
 app.use((req, res, next) => {
-  // Set CORS headers manually as backup
   const allowedOrigin = req.headers.origin;
   const allowedOrigins = [
     'http://localhost:3000',
+    'http://localhost:5173',
     'https://journal-website-three.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean);
@@ -75,9 +75,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Body parser middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parser middleware - INCREASED LIMIT for file uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/journal_platform', {
@@ -119,29 +119,16 @@ db.once('open', async () => {
   await initializeServices();
 });
 
-// Enhanced Health check route with CORS debugging info
+// Health check route
 app.get('/api/health', (req, res) => {
-  const requestOrigin = req.headers.origin;
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://journal-website-three.vercel.app',
-    process.env.FRONTEND_URL
-  ].filter(Boolean);
-
   res.json({ 
     message: 'Server is running!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    cors: {
-      requestOrigin: requestOrigin || 'No origin header',
-      allowedOrigins: allowedOrigins,
-      isOriginAllowed: allowedOrigins.includes(requestOrigin),
-      frontendUrl: process.env.FRONTEND_URL
-    }
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Test email endpoint for debugging
+// Test email endpoint
 app.get('/api/test-email', async (req, res) => {
   try {
     const { sendEmail } = require('./utils/emailService');
@@ -204,6 +191,13 @@ app.use((error, req, res, next) => {
     });
   }
   
+  if (error.message === 'Invalid file type. Only PDF, DOC, DOCX, and RTF files are allowed.') {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+  
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || 'Internal Server Error'
@@ -221,7 +215,10 @@ app.use('*', (req, res) => {
       'POST /api/auth/register',
       'POST /api/auth/login',
       'GET /api/auth/me',
-      'POST /api/auth/logout'
+      'POST /api/auth/logout',
+      'GET /api/manuscripts',
+      'POST /api/manuscripts',
+      'GET /api/manuscripts/:id'
     ]
   });
 });
@@ -233,5 +230,10 @@ app.listen(PORT, () => {
   console.log(`📧 Email service configured: ${process.env.EMAIL_HOST || 'Not configured'}`);
   console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
   console.log(`🌍 Server URL: ${process.env.NODE_ENV === 'production' ? 'https://journal-website-it00.onrender.com' : `http://localhost:${PORT}`}`);
-  console.log(`📋 CORS enabled for: http://localhost:3000, ${process.env.FRONTEND_URL || 'undefined'}`);
+  console.log(`📋 CORS enabled for: ${[
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://journal-website-three.vercel.app',
+    process.env.FRONTEND_URL
+  ].filter(Boolean).join(', ')}`);
 });
