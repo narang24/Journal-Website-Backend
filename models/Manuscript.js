@@ -11,7 +11,6 @@ const manuscriptSchema = new mongoose.Schema({
   abstract: {
     type: String,
     required: [true, 'Abstract is required'],
-    minLength: [250, 'Abstract must be at least 250 words'],
     maxLength: [300, 'Abstract cannot exceed 300 words']
   },
   
@@ -233,15 +232,10 @@ manuscriptSchema.methods.validateManuscript = function() {
     });
   }
   
-  // Check abstract word count (250-300 words)
+  // Check abstract - REMOVED minimum word count requirement
+  // Only check maximum word count (300 words)
   const abstractWordCount = this.abstract.trim().split(/\s+/).length;
-  if (abstractWordCount < 250) {
-    errors.push({
-      field: 'abstract',
-      message: `Abstract must be at least 250 words (current: ${abstractWordCount} words)`,
-      severity: 'error'
-    });
-  } else if (abstractWordCount > 300) {
+  if (abstractWordCount > 300) {
     errors.push({
       field: 'abstract',
       message: `Abstract cannot exceed 300 words (current: ${abstractWordCount} words)`,
@@ -249,38 +243,8 @@ manuscriptSchema.methods.validateManuscript = function() {
     });
   }
   
-  // Check minimum references (20 required)
-  if (!this.references || this.references.length < 20) {
-    errors.push({
-      field: 'references',
-      message: `Minimum 20 references required (current: ${this.references?.length || 0})`,
-      severity: 'error'
-    });
-  }
-  
-  // Check if at least 80% of references are journal articles (this is a soft check)
-  // This would require manual review but we can add a warning
-  if (this.references && this.references.length > 0) {
-    const recentReferences = this.references.filter(ref => {
-      // Simple check for year in reference (assumes format includes year)
-      const yearMatch = ref.match(/\b(19|20)\d{2}\b/);
-      if (yearMatch) {
-        const year = parseInt(yearMatch[0]);
-        const currentYear = new Date().getFullYear();
-        return (currentYear - year) <= 5;
-      }
-      return false;
-    });
-    
-    const recentPercentage = (recentReferences.length / this.references.length) * 100;
-    if (recentPercentage < 80) {
-      errors.push({
-        field: 'references',
-        message: `${recentPercentage.toFixed(0)}% of references are from last 5 years. IJESTY recommends 80% or more.`,
-        severity: 'warning'
-      });
-    }
-  }
+  // REMOVED: Minimum references check (20 required)
+  // References are now optional or can have any number
   
   // Check file format
   const allowedMimeTypes = [
@@ -375,9 +339,8 @@ manuscriptSchema.statics.getValidationRequirements = function() {
       description: 'Title must not exceed 20 words'
     },
     abstract: {
-      minWords: 250,
       maxWords: 300,
-      description: 'Abstract must be 250-300 words'
+      description: 'Abstract must not exceed 300 words'
     },
     pages: {
       min: 8,
@@ -385,10 +348,7 @@ manuscriptSchema.statics.getValidationRequirements = function() {
       description: 'Manuscript must be 8-12 pages'
     },
     references: {
-      min: 20,
-      recentPercentage: 80,
-      maxAge: 5,
-      description: 'Minimum 20 references, 80% from last 5 years'
+      description: 'References are optional'
     },
     fileFormats: {
       allowed: ['DOC', 'DOCX', 'PDF', 'RTF'],

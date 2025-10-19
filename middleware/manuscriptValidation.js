@@ -182,7 +182,8 @@ const validateManuscriptMetadata = (req, res, next) => {
     }
   }
 
-  // Validate abstract
+  // Validate abstract - REMOVED MINIMUM WORD COUNT CHECK
+  // Only check if abstract exists and doesn't exceed max words
   if (!abstract || abstract.trim().length === 0) {
     errors.push({
       field: 'abstract',
@@ -190,12 +191,7 @@ const validateManuscriptMetadata = (req, res, next) => {
     });
   } else {
     const wordCount = abstract.trim().split(/\s+/).length;
-    if (wordCount < 250) {
-      errors.push({
-        field: 'abstract',
-        message: `Abstract must be at least 250 words (current: ${wordCount} words)`
-      });
-    } else if (wordCount > 300) {
+    if (wordCount > 300) {
       errors.push({
         field: 'abstract',
         message: `Abstract cannot exceed 300 words (current: ${wordCount} words)`
@@ -230,13 +226,8 @@ const validateManuscriptMetadata = (req, res, next) => {
     }
   }
 
-  // Validate references
-  if (!references || references.length < 20) {
-    errors.push({
-      field: 'references',
-      message: `Minimum 20 references required (current: ${references?.length || 0})`
-    });
-  }
+  // REMOVED: Minimum references check (20 required)
+  // References validation is now removed - they are optional
 
   // Validate keywords (optional but recommended)
   if (!keywords || keywords.length === 0) {
@@ -332,9 +323,8 @@ const getValidationRequirements = (req, res) => {
         description: 'Maximum 20 words, without acronym or abbreviation'
       },
       abstract: {
-        minWords: 250,
         maxWords: 300,
-        description: 'Must be 250-300 words with no citations'
+        description: 'Maximum 300 words with no citations'
       },
       manuscript: {
         minPages: 8,
@@ -344,10 +334,7 @@ const getValidationRequirements = (req, res) => {
         maxSize: '20MB'
       },
       references: {
-        minimum: 20,
-        journalArticlePercentage: 80,
-        maxAge: 5,
-        description: 'Minimum 20 references, primarily 80% journal articles not over 5 years old'
+        description: 'References are optional'
       },
       authors: {
         minimum: 1,
